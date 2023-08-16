@@ -4,6 +4,8 @@
 #include "includes/checkformat.hpp"
 #include "includes/atomicdata.hpp"
 #include <map>
+#include <algorithm>
+#include <ctime>
 
 using namespace std;
 using namespace eosio;
@@ -17,13 +19,26 @@ CONTRACT aphsharehold : public contract {
         
         [[eosio::action]] void stake(name owner, vector<uint64_t> asset_ids);
         [[eosio::action]] void unstake(name to, vector<uint64_t> asset_ids);
+        [[eosio::action]] void shareprofits(name collection_name);
+        [[eosio::action]] void claimshare(name collection_name, name staker, string yearMonth);
         
         void checkschema(name schema_name);
+        uint64_t yearMonthToInt(string yearMonth);
+        bool isstakevalid(time_point_sec staked_at);
     
     private:
         string sh_schema_name = "sharehold";
-        string quantity_attribute = "quantity";
-        string percentage_attribute = "percentage_per_unit2";
+        string quantity_attribute = "units";
+        string percentage_attribute = "percentage_per_unit";
+        uint32_t staking_valid_period = 30 * 24 * 60 * 60; // 30 days
+        
+        struct [[eosio::table]] stakers_s {
+            name staker;
+            
+            uint64_t primary_key() const { return staker.value; }
+        };
+        typedef multi_index<name("stakers"), stakers_s> stakers_t;
+        stakers_t stakers = stakers_t(get_self(), get_self().value);
         
         struct [[eosio::table]] stakedassets_s {
             uint64_t id;
@@ -41,10 +56,35 @@ CONTRACT aphsharehold : public contract {
             name collection_name;
             asset amount;
             
-            uint16_t primary_key() const { return collection_name.value; }
+            uint64_t primary_key() const { return collection_name.value; }
         };
         typedef multi_index<name("balance"), balance_s> balance_t;
         balance_t balance = balance_t(get_self(), get_self().value);
+        
+        struct [[eosio::table]] claimable_s {
+            name collection_name;
+            asset amount;
+            
+            uint64_t primary_key() const { return collection_name.value; }
+        };
+        typedef multi_index<name("claimables"), claimable_s> claimable_t;
+        claimable_t claimables = claimable_t(get_self(), get_self().value);
+        
+        struct [[eosio::table]] shares_s {
+            string month;
+            vector<uint64_t> staked_assets;
+            double percentage;
+            asset claimable;
+            bool claimed;
+            
+            uint64_t primary_key() const {
+                string yearMonth = month;
+                replace(yearMonth.begin(), yearMonth.end(), '-', '0');
+                return stoull(yearMonth); 
+            }
+        };
+        typedef multi_index<name("shares"), shares_s> shares_t;
+        shares_t get_shares(name acc);
         
         /* ATOMICASSETS */
         struct assets_s {
