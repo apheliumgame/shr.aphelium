@@ -255,7 +255,6 @@ void aphsharehold::shareprofits(name collection_name)
 
 void aphsharehold::claimshare(name collection_name, name staker, string yearMonth)
 {
-    check(false, "Claim is not available yet");
     require_auth(staker);
     
     // Get the balance

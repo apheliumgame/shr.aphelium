@@ -30,7 +30,7 @@ CONTRACT aphsharehold : public contract {
         string sh_schema_name = "sharehold";
         string quantity_attribute = "units";
         string percentage_attribute = "percentage_per_unit";
-        uint32_t staking_valid_period = 30 * 24 * 60 * 60; // 30 days
+        uint32_t staking_valid_period = 31 * 24 * 60 * 60; // 30 days
         
         struct [[eosio::table]] stakers_s {
             name staker;
